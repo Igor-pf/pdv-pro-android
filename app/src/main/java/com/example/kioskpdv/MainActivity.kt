@@ -107,8 +107,29 @@ class MainActivity : AppCompatActivity() {
             webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
-        // Habilitar Alertas e Popups
-        webView.webChromeClient = android.webkit.WebChromeClient()
+        // Habilitar Alertas e Popups com Design Premium
+        webView.webChromeClient = object : android.webkit.WebChromeClient() {
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult?): Boolean {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Atenção")
+                    .setMessage(message)
+                    .setCancelable(false)
+                    .setPositiveButton("OK") { _, _ -> result?.confirm() }
+                    .show()
+                return true
+            }
+
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult?): Boolean {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Confirmação")
+                    .setMessage(message)
+                    .setCancelable(false)
+                    .setPositiveButton("Confirmar") { _, _ -> result?.confirm() }
+                    .setNegativeButton("Cancelar") { _, _ -> result?.cancel() }
+                    .show()
+                return true
+            }
+        }
         
         // Adicionar Ponte JS
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidApp")
