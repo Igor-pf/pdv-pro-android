@@ -193,7 +193,6 @@ class MainActivity : AppCompatActivity() {
 
     // Método chamado pela Interface JS (Trigger Genérico)
     fun printWebView() {
-        // ... (código existente)
         val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
         if (printManager != null) {
             val jobName = "${getString(R.string.app_name)} Tela"
