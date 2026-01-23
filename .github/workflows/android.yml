@@ -21,22 +21,13 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Grant execute permission for gradlew
-      # O wrapper provavelmente não existe se o repo foi criado sem rodar o android studio antes.
-      # Vamos tentar usar o gradle instalado no runner se o wrapper falhar, 
-      # ou assumir que o usuário fará o setup adequado. 
-      # Melhor estratégia para ambiente "sem IDE": Usar o gradle do sistema ou gerar wrapper na hora.
-      # O runner do Github já tem Gradle. Vamos usar 'gradle' direto se não tiver wrapper.
-      run: chmod +x gradlew || true
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.6'
 
     - name: Build with Gradle
-      # Usaremos o comando gradle direto caso o ./gradlew não exista.
-      run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew assembleDebug --no-daemon
-        else
-          gradle assembleDebug --no-daemon
-        fi
+      run: gradle assembleDebug --no-daemon
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
