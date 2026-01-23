@@ -48,4 +48,14 @@ class WebAppInterface(private val mContext: Context) {
             Toast.makeText(mContext, "Erro: Permissão de notificação negada.", Toast.LENGTH_SHORT).show()
         }
     }
+
+    @JavascriptInterface
+    fun print() {
+        if (mContext is MainActivity) {
+            // Executar na Thread Principal pois métodos de WebView exigem isso
+            mContext.runOnUiThread {
+                mContext.printWebView()
+            }
+        }
+    }
 }

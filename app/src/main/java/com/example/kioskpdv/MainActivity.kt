@@ -29,9 +29,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSave: Button
     private lateinit var sharedPreferences: SharedPreferences
 
-    private var backButtonLongPressStartTime: Long = 0
-    private val LONG_PRESS_DURATION = 2000 // 2 segundos para acionar o reset
-
     // Register callback for permission request
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -100,6 +97,18 @@ class MainActivity : AppCompatActivity() {
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.settings.databaseEnabled = true
+        
+        // Cache e Performance
+        webView.settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+        
+        // Conteúdo Misto (HTTP em HTTPS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        }
+
+        // Habilitar Alertas e Popups
+        webView.webChromeClient = android.webkit.WebChromeClient()
         
         // Adicionar Ponte JS
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidApp")
@@ -111,16 +120,16 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                // Injetar JS para sobrescrever a API de Notificação do navegador
-                injectNotificationPolyfill()
+                injectPolyfills()
             }
         }
 
         webView.loadUrl(url)
     }
 
-    private fun injectNotificationPolyfill() {
+    private fun injectPolyfills() {
         val js = """
+            // Polyfill para Notificações
             if (!window.Notification) {
                 window.Notification = function(title, options) {
                     this.title = title;
@@ -133,65 +142,43 @@ class MainActivity : AppCompatActivity() {
                     return Promise.resolve('granted');
                 };
             } else {
-                // Se o navegador já tem Notification, vamos TENTAR sobrescrever o construtor original 
-                // ou fazer um 'hook' para chamar o nativo também, pois WebViews Android podem silenciar notificações HTML5.
-                const OriginalNotification = window.Notification;
-                window.Notification = function(title, options) {
-                    // Chama a nativa Android
-                    AndroidApp.showNotification(title, options ? options.body : '');
-                    // Opcional: Chama a original se quiser manter comportamento padrão do site (console log etc)
-                    // new OriginalNotification(title, options);
-                }
-                window.Notification.permission = 'granted';
-                window.Notification.requestPermission = function(callback) {
-                     if(callback) callback('granted');
-                     return Promise.resolve('granted');
-                };
+                 const OriginalNotification = window.Notification;
+                 window.Notification = function(title, options) {
+                     AndroidApp.showNotification(title, options ? options.body : '');
+                 }
+                 window.Notification.permission = 'granted';
+                 window.Notification.requestPermission = function(callback) {
+                      if(callback) callback('granted');
+                      return Promise.resolve('granted');
+                 };
             }
+
+            // Polyfill para Impressão
+            window.print = function() {
+                AndroidApp.print();
+            };
         """.trimIndent()
         
         webView.evaluateJavascript(js, null)
     }
 
-    // Controle do Botão Voltar (Navegação interna ou Reset Long Press)
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (event?.action == KeyEvent.ACTION_DOWN) {
-                if (event.repeatCount == 0) {
-                    backButtonLongPressStartTime = System.currentTimeMillis()
-                } else if ((System.currentTimeMillis() - backButtonLongPressStartTime) >= LONG_PRESS_DURATION) {
-                    // Long press detectado
-                    showResetDialog()
-                    return true
-                }
-            }
+    // Método chamado pela Interface JS
+    fun printWebView() {
+        val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
+        printManager?.let {
+            val jobName = "${getString(R.string.app_name)} Document"
+            val printAdapter = webView.createPrintDocumentAdapter(jobName)
+            it.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
         }
-        return super.onKeyDown(keyCode, event)
     }
 
-    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            // Se foi um toque curto e não um long press consumido
-            if ((System.currentTimeMillis() - backButtonLongPressStartTime) < LONG_PRESS_DURATION) {
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                    return true
-                }
-            }
+    // Bloquear botão voltar para modo Kiosk total (Opcional, mas solicitado 'fixo')
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        // Se o WebView puder voltar, volta. Se não, não faz nada (não fecha o app).
+        if (webView.canGoBack()) {
+            webView.goBack()
         }
-        return super.onKeyUp(keyCode, event)
-    }
-
-    private fun showResetDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Resetar Configuração")
-            .setMessage(R.string.reset_config_message)
-            .setPositiveButton(R.string.yes) { _, _ ->
-                sharedPreferences.edit().remove("SAVED_URL").apply()
-                // Reiniciar a Activity para voltar ao estado inicial
-                recreate()
-            }
-            .setNegativeButton(R.string.no, null)
-            .show()
+        // super.onBackPressed() // Comentado para impedir fechamento
     }
 }
