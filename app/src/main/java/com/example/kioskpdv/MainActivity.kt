@@ -194,10 +194,18 @@ class MainActivity : AppCompatActivity() {
     // Método chamado pela Interface JS
     fun printWebView() {
         val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
-        printManager?.let {
+        if (printManager != null) {
             val jobName = "${getString(R.string.app_name)} Document"
+            
+            // Usar API recomendada para criar Adapter quando possível, mas a API antiga 'createPrintDocumentAdapter(String)' 
+            // ainda é largamente suportada e necessária para definir nomes de job em algumas versões.
+            // O problema pode ser simplesmente o objeto 'webView' não estar pronto ou o Adapter falhar.
+            
             val printAdapter = webView.createPrintDocumentAdapter(jobName)
-            it.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
+            
+            printManager.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
+        } else {
+             Toast.makeText(this, "Erro: Serviço de Impressão não disponível.", Toast.LENGTH_LONG).show()
         }
     }
 

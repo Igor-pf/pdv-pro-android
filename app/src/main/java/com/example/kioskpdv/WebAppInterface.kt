@@ -64,6 +64,7 @@ class WebAppInterface(private val mContext: Context) {
         if (mContext is MainActivity) {
             // Executar na Thread Principal pois métodos de WebView exigem isso
             mContext.runOnUiThread {
+                Toast.makeText(mContext, "Iniciando Impressão...", Toast.LENGTH_SHORT).show()
                 mContext.printWebView()
             }
         }
