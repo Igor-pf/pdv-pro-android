@@ -44,6 +44,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Iniciar Serviço de Keep Alive (Background)
+        val serviceIntent = android.content.Intent(this, KeepAliveService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+
         // Inicializar Views
         webView = findViewById(R.id.webview)
         configContainer = findViewById(R.id.configContainer)
