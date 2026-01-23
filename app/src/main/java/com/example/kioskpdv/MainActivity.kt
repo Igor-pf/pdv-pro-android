@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         // Habilitar Alertas e Popups com Design Premium
         webView.webChromeClient = object : android.webkit.WebChromeClient() {
             override fun onJsAlert(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult?): Boolean {
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity, R.style.Theme_KioskPDV_Dialog_Divine)
                     .setTitle("Atenção")
                     .setMessage(message)
                     .setCancelable(false)
@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult?): Boolean {
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity, R.style.Theme_KioskPDV_Dialog_Divine)
                     .setTitle("Confirmação")
                     .setMessage(message)
                     .setCancelable(false)
