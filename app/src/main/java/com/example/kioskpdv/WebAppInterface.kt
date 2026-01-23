@@ -78,6 +78,4 @@ class WebAppInterface(private val mContext: Context) {
             }
         }
     }
-        }
-    }
 }
