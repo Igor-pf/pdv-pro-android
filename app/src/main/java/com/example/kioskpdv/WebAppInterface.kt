@@ -62,11 +62,22 @@ class WebAppInterface(private val mContext: Context) {
     @JavascriptInterface
     fun print() {
         if (mContext is MainActivity) {
-            // Executar na Thread Principal pois métodos de WebView exigem isso
+            // Executar na Thread Principal
             mContext.runOnUiThread {
-                Toast.makeText(mContext, "Iniciando Impressão...", Toast.LENGTH_SHORT).show()
                 mContext.printWebView()
             }
+        }
+    }
+
+    @JavascriptInterface
+    fun printHtml(html: String) {
+        if (mContext is MainActivity) {
+            mContext.runOnUiThread {
+                Toast.makeText(mContext, "Imprimindo Ticket...", Toast.LENGTH_SHORT).show()
+                mContext.printContent(html)
+            }
+        }
+    }
         }
     }
 }

@@ -191,22 +191,45 @@ class MainActivity : AppCompatActivity() {
         webView.evaluateJavascript(js, null)
     }
 
-    // Método chamado pela Interface JS
+    // Método chamado pela Interface JS (Trigger Genérico)
     fun printWebView() {
+        // ... (código existente)
         val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
         if (printManager != null) {
-            val jobName = "${getString(R.string.app_name)} Document"
-            
-            // Usar API recomendada para criar Adapter quando possível, mas a API antiga 'createPrintDocumentAdapter(String)' 
-            // ainda é largamente suportada e necessária para definir nomes de job em algumas versões.
-            // O problema pode ser simplesmente o objeto 'webView' não estar pronto ou o Adapter falhar.
-            
+            val jobName = "${getString(R.string.app_name)} Tela"
             val printAdapter = webView.createPrintDocumentAdapter(jobName)
-            
             printManager.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
-        } else {
-             Toast.makeText(this, "Erro: Serviço de Impressão não disponível.", Toast.LENGTH_LONG).show()
         }
+    }
+
+    // [NOVO] Método para imprimir conteúdo HTML específico vindo do JS
+    @SuppressLint("SetJavaScriptEnabled")
+    fun printContent(htmlContent: String) {
+        val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
+        if (printManager == null) {
+             Toast.makeText(this, "Erro: Serviço de Impressão indisponível.", Toast.LENGTH_LONG).show()
+             return
+        }
+
+        // Criar um WebView "invisível" ou temporário para renderizar o ticket
+        // Ele não precisa estar no layout se usarmos created context, mas é melhor adicionar e esconder
+        // ou criar dinamicamente com application context.
+        val printView = WebView(this)
+        printView.settings.javaScriptEnabled = true
+        
+        printView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                // Quando terminar de renderizar o HTML, manda imprimir
+                val jobName = "${getString(R.string.app_name)} Ticket"
+                val printAdapter = printView.createPrintDocumentAdapter(jobName)
+                printManager.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
+                
+                // Cleanup (Remover referência ou limpar memória se possível, mas garbage collector cuida)
+            }
+        }
+
+        // Carregar o conteúdo HTML
+        printView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
     }
 
     // Bloquear botão voltar para modo Kiosk total (Opcional, mas solicitado 'fixo')
