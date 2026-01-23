@@ -16,13 +16,22 @@ class WebAppInterface(private val mContext: Context) {
 
     @JavascriptInterface
     fun showNotification(title: String, body: String) {
+        val soundUri = android.net.Uri.parse("android.resource://" + mContext.packageName + "/" + R.raw.notificacao)
+
         // Criar o canal de notificação (necessário para Android 8.0+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "PDV Notifications"
             val descriptionText = "Notificações do Sistema PDV"
             val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel("PDV_CHANNEL_ID", name, importance).apply {
+            
+            // Usar ID Novo para garantir que o Android registre o novo som
+            val channel = NotificationChannel("PDV_CHANNEL_ID_CUSTOM_SOUND", name, importance).apply {
                 description = descriptionText
+                val audioAttributes = android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                    .build()
+                setSound(soundUri, audioAttributes)
             }
             // Registrar o canal
             val notificationManager: NotificationManager =
@@ -31,11 +40,12 @@ class WebAppInterface(private val mContext: Context) {
         }
 
         // Construir a notificação
-        val builder = NotificationCompat.Builder(mContext, "PDV_CHANNEL_ID")
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // Ícone genérico, idealmente seria ic_notification
+        val builder = NotificationCompat.Builder(mContext, "PDV_CHANNEL_ID_CUSTOM_SOUND")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(soundUri)
             .setAutoCancel(true)
 
         // Exibir
