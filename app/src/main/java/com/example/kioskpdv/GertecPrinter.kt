@@ -35,19 +35,64 @@ class GertecPrinter(private val context: Context) : Printer.Listener {
             textFormat.setAlignment(Alignment.LEFT)
             textFormat.setFontSize(22)
             textFormat.setLineSpacing(5)
-            // Fonte monoespaçada não é explicitamente configurável no EasyLayer TextFormat simples, 
-            // mas o padrão costuma ser adequado.
 
             printer?.printText(textFormat, text)
-            printer?.scrollPaper(150) // Avança papel
-
-            Log.d(TAG, "Comando de impressão enviado via EasyLayer")
+            // Removido scrollPaper forçado aqui para evitar desperdício. 
+            // O JS deve enviar comandos de quebra se precisar.
+            
+            Log.d(TAG, "Comando de impressão simples enviado")
 
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao imprimir: ${e.message}")
             e.printStackTrace()
-            // Tenta reconectar ou reiniciar serviço se possível, 
-            // mas o EasyLayer gerencia muito disso sozinho.
+        }
+    }
+
+    /**
+     * Imprime uma lista de comandos formatados em JSON
+     * Exemplo: [{"text":"Titulo", "size":30, "align":"CENTER", "bold":true}, ...]
+     */
+    fun printList(jsonArrayString: String) {
+        try {
+            if (printer == null) {
+                printer = Printer.getInstance(context, this)
+            }
+
+            val jsonArray = org.json.JSONArray(jsonArrayString)
+
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                
+                val text = item.optString("text", "")
+                val align = item.optString("align", "LEFT")
+                val size = item.optInt("size", 22)
+                val bold = item.optBoolean("bold", false)
+                
+                val textFormat = TextFormat()
+                
+                // Alinhamento
+                when (align.uppercase()) {
+                    "CENTER" -> textFormat.setAlignment(Alignment.CENTER)
+                    "RIGHT" -> textFormat.setAlignment(Alignment.RIGHT)
+                    else -> textFormat.setAlignment(Alignment.LEFT)
+                }
+                
+                // Tamanho e Estilo
+                textFormat.setFontSize(size)
+                textFormat.setBold(bold)
+                textFormat.setLineSpacing(2) // Espaçamento mais compacto para visual limpo
+
+                printer?.printText(textFormat, text)
+            }
+
+            // Apenas um pequeno avanço no final para cortar corretamente
+            printer?.scrollPaper(20) 
+            
+            Log.d(TAG, "Impressão rica (JSON) finalizada")
+
+        } catch (e: Exception) {
+             Log.e(TAG, "Erro ao processar printList: ${e.message}")
+             e.printStackTrace()
         }
     }
 
@@ -56,7 +101,6 @@ class GertecPrinter(private val context: Context) : Printer.Listener {
     override fun onPrinterError(error: PrinterError?) {
         val cause = error?.cause ?: "Desconhecida"
         Log.e(TAG, "Erro na impressora notificado pelo Listener: $cause")
-        // Opcional: Feedback visual ao usuário via Toast (requer MainThread)
     }
 
     override fun onPrinterSuccessful(id: Int) {

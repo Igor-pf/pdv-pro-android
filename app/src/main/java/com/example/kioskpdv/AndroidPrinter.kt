@@ -8,7 +8,15 @@ class AndroidPrinter(private val context: Context, private val printer: GertecPr
 
     @JavascriptInterface
     fun imprimir(texto: String) {
-        Toast.makeText(context, "Enviando para Impressora...", Toast.LENGTH_SHORT).show()
+        // Método legado ou simples
+        Toast.makeText(context, "Imprimindo Texto...", Toast.LENGTH_SHORT).show()
         printer.printText(texto)
+    }
+
+    @JavascriptInterface
+    fun printList(json: String) {
+        // Novo método rico (JSON)
+        // Toast.makeText(context, "Imprimindo Formatado...", Toast.LENGTH_SHORT).show()
+        printer.printList(json)
     }
 }
