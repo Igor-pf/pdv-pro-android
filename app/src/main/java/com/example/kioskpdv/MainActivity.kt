@@ -141,6 +141,10 @@ class MainActivity : AppCompatActivity() {
         
         // Adicionar Ponte JS
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidApp")
+        
+        // Integração Impressora Gertec
+        val gertecPrinter = GertecPrinter(this)
+        webView.addJavascriptInterface(AndroidPrinter(this, gertecPrinter), "AndroidPrinter")
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
