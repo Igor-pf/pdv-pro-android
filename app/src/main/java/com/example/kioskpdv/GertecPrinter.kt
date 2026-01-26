@@ -86,7 +86,7 @@ class GertecPrinter(private val context: Context) : Printer.Listener {
             }
 
             // Apenas um pequeno avanço no final para cortar corretamente
-            printer?.scrollPaper(20) 
+            // printer?.scrollPaper(10) // DESATIVADO: Usuário relatou muito papel. Testando sem avanço.
             
             Log.d(TAG, "Impressão rica (JSON) finalizada")
 
