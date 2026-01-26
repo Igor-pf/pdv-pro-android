@@ -80,7 +80,7 @@ class GertecPrinter(private val context: Context) : Printer.Listener {
                 // Tamanho e Estilo
                 textFormat.setFontSize(size)
                 textFormat.setBold(bold)
-                textFormat.setLineSpacing(2) // Espaçamento mais compacto para visual limpo
+                textFormat.setLineSpacing(0) // Zero extra spacing for compact print
 
                 printer?.printText(textFormat, text)
             }
