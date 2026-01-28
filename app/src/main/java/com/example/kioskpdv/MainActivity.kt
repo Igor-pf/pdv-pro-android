@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.webkit.PermissionRequest
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -24,6 +25,8 @@ import com.google.android.material.textfield.TextInputEditText
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private val TAG = "MainActivity"
+    private var pendingPermissionRequest: PermissionRequest? = null
     private lateinit var configContainer: LinearLayout
     private lateinit var etServerUrl: TextInputEditText
     private lateinit var btnSave: Button
@@ -37,6 +40,18 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Notificações são importantes para este App", Toast.LENGTH_SHORT).show()
             }
+        }
+
+    // Register callback for Camera permission request
+    private val cameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                pendingPermissionRequest?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+            } else {
+                pendingPermissionRequest?.deny()
+                Toast.makeText(this, "Permissão de câmera necessária para esta função", Toast.LENGTH_SHORT).show()
+            }
+            pendingPermissionRequest = null
         }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -136,6 +151,21 @@ class MainActivity : AppCompatActivity() {
                     .setNegativeButton("Cancelar") { _, _ -> result?.cancel() }
                     .show()
                 return true
+            }
+
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                if (request == null) return
+                
+                request.resources.forEach { resource ->
+                    if (resource == PermissionRequest.RESOURCE_VIDEO_CAPTURE) {
+                        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                        } else {
+                            pendingPermissionRequest = request
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
+                }
             }
         }
         
