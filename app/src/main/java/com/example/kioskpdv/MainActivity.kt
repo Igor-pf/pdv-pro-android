@@ -11,6 +11,8 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -20,6 +22,14 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import android.net.Uri
+import android.content.Intent
+import android.provider.MediaStore
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.google.android.material.textfield.TextInputEditText
 
 class MainActivity : AppCompatActivity() {
@@ -27,6 +37,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private val TAG = "MainActivity"
     private var pendingPermissionRequest: PermissionRequest? = null
+    private var mUploadMessage: ValueCallback<Array<Uri>>? = null
+    private var mCameraPhotoPath: String? = null
+
     private lateinit var configContainer: LinearLayout
     private lateinit var etServerUrl: TextInputEditText
     private lateinit var btnSave: Button
@@ -53,6 +66,31 @@ class MainActivity : AppCompatActivity() {
             }
             pendingPermissionRequest = null
         }
+
+    // Register callback for File Chooser (Camera)
+    private val fileChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (mUploadMessage == null) return@registerForActivityResult
+
+        var results: Array<Uri>? = null
+
+        if (result.resultCode == RESULT_OK) {
+            // Se tem foto da câmera
+            if (mCameraPhotoPath != null) {
+                val file = File(mCameraPhotoPath!!)
+                if (file.exists()) {
+                    results = arrayOf(Uri.fromFile(file))
+                }
+            }
+            
+            // Se o intent retornou dados (galeria)
+            if (results == null && result.data != null && result.data?.dataString != null) {
+                 results = arrayOf(Uri.parse(result.data?.dataString))
+            }
+        }
+
+        mUploadMessage?.onReceiveValue(results)
+        mUploadMessage = null
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -167,6 +205,59 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                if (mUploadMessage != null) {
+                    mUploadMessage?.onReceiveValue(null)
+                    mUploadMessage = null
+                }
+                mUploadMessage = filePathCallback
+
+                var takePictureIntent: Intent? = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                if (takePictureIntent?.resolveActivity(packageManager) != null) {
+                    // Create the File where the photo should go
+                    var photoFile: File? = null
+                    try {
+                        photoFile = createImageFile()
+                    } catch (ex: Exception) {
+                        // Error occurring while creating the File
+                    }
+                    
+                    // Continue only if the File was successfully created
+                    if (photoFile != null) {
+                        val photoURI: Uri = FileProvider.getUriForFile(
+                            this@MainActivity,
+                            "${applicationContext.packageName}.fileprovider",
+                            photoFile
+                        )
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                    } else {
+                        takePictureIntent = null
+                    }
+                }
+
+                val contentSelectionIntent = Intent(Intent.ACTION_GET_CONTENT)
+                contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE)
+                contentSelectionIntent.type = "image/*"
+
+                val intentArray: Array<Intent?> = if (takePictureIntent != null) {
+                    arrayOf(takePictureIntent)
+                } else {
+                    arrayOfNulls(0)
+                }
+
+                val chooserIntent = Intent(Intent.ACTION_CHOOSER)
+                chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent)
+                chooserIntent.putExtra(Intent.EXTRA_TITLE, "Selecione ou Tire uma Foto")
+                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentArray)
+
+                fileChooserLauncher.launch(chooserIntent)
+                return true
+            }
         }
         
         // Adicionar Ponte JS
@@ -273,5 +364,19 @@ class MainActivity : AppCompatActivity() {
             webView.goBack()
         }
         // super.onBackPressed() // Comentado para impedir fechamento
+    }
+
+    private fun createImageFile(): File {
+        // Create an image file name
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File? = getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
+        return File.createTempFile(
+            "JPEG_${timeStamp}_", /* prefix */
+            ".jpg", /* suffix */
+            storageDir /* directory */
+        ).apply {
+            // Save a file: path for use with ACTION_VIEW intents
+            mCameraPhotoPath = absolutePath
+        }
     }
 }
