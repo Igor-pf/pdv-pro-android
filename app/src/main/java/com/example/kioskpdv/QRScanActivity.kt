@@ -77,7 +77,23 @@ class QRScanActivity : AppCompatActivity() {
                     })
                 }
 
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            // Seleção de Câmera Robusta
+            var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            if (!cameraProvider.hasCamera(cameraSelector)) {
+                 if (cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
+                     cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+                 } else {
+                     // Tenta pegar a primeira disponível
+                     try {
+                        val firstCamera = cameraProvider.availableCameraInfos.firstOrNull()?.cameraSelector
+                        if (firstCamera != null) cameraSelector = firstCamera
+                     } catch(e: Exception) {
+                        Toast.makeText(this, "Nenhuma câmera encontrada", Toast.LENGTH_LONG).show()
+                        finish()
+                        return@addListener
+                     }
+                 }
+            }
 
             try {
                 cameraProvider.unbindAll()
@@ -86,6 +102,7 @@ class QRScanActivity : AppCompatActivity() {
                 )
             } catch (exc: Exception) {
                 Log.e("QRScanActivity", "Use case binding failed", exc)
+                Toast.makeText(this, "Erro ao iniciar câmera: ${exc.message}", Toast.LENGTH_LONG).show()
             }
 
         }, ContextCompat.getMainExecutor(this))
