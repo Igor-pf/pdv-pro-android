@@ -255,7 +255,13 @@ class MainActivity : AppCompatActivity() {
                 chooserIntent.putExtra(Intent.EXTRA_TITLE, "Selecione ou Tire uma Foto")
                 chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentArray)
 
-                fileChooserLauncher.launch(chooserIntent)
+                try {
+                     fileChooserLauncher.launch(chooserIntent)
+                } catch (e: Exception) {
+                     mUploadMessage = null
+                     Toast.makeText(this@MainActivity, "Erro ao abrir câmera ou galeria", Toast.LENGTH_SHORT).show()
+                     return false
+                }
                 return true
             }
         }
