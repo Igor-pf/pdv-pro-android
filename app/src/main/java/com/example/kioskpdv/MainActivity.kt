@@ -92,6 +92,19 @@ class MainActivity : AppCompatActivity() {
         mUploadMessage = null
     }
 
+    // Register callback for QR Code Scanner
+    private val qrCodeLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val qrCode = result.data?.getStringExtra("SCAN_RESULT")
+            if (qrCode != null) {
+                // Injeta o código no WebView chamando a função JS onQRCodeScanned
+                val js = "javascript:onQRCodeScanned('$qrCode')"
+                webView.evaluateJavascript(js, null)
+                Toast.makeText(this, "QR Code Lido: $qrCode", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -384,5 +397,10 @@ class MainActivity : AppCompatActivity() {
             // Save a file: path for use with ACTION_VIEW intents
             mCameraPhotoPath = absolutePath
         }
+    }
+
+    fun launchQRScanner() {
+        val intent = Intent(this, QRScanActivity::class.java)
+        qrCodeLauncher.launch(intent)
     }
 }

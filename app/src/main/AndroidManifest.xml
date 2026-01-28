@@ -46,6 +46,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".QRScanActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"/>
+
         <service
             android:name=".KeepAliveService"
             android:enabled="true"
