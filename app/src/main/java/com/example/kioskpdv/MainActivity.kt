@@ -288,32 +288,46 @@ class MainActivity : AppCompatActivity() {
                             return null
                         }
                     }, "browser")
-                },
-                { e -> android.util.Log.e("GeckoView", "Erro ao carregar extensão", e) }
-            )
 
-        geckoView.setSession(geckoSession)
-        geckoSession.loadUri(url)
+                    // Sincronizando o LoadUri: Somente carrega o site após a ponte estar pronta (Garante funcionamento da impressão)
+                    runOnUiThread {
+                        geckoView.setSession(geckoSession)
+                        android.util.Log.d("GeckoView", "Ponte pronta. Carregando URL: $url")
+                        geckoSession.loadUri(url)
+                    }
+                },
+                { e -> 
+                    android.util.Log.e("GeckoView", "Erro crítico ao carregar extensão", e)
+                    // Fallback: Tenta carregar mesmo sem ponte
+                    runOnUiThread {
+                        geckoView.setSession(geckoSession)
+                        geckoSession.loadUri(url)
+                    }
+                }
+            )
     }
 
     private fun handleBridgeMessage(message: Any) {
         try {
+            android.util.Log.d("GeckoView", "Mensagem bruta recebida: $message")
             val json = com.google.gson.Gson().toJson(message)
-            val jsonObj = com.google.gson.JsonObject()
             val data = com.google.gson.JsonParser.parseString(json).asJsonObject
             
             val bridge = data.get("bridge")?.asString
             val method = data.get("method")?.asString
-            val params = data.getAsJsonArray("params")
+            val params = data.getAsJsonArray("params") ?: com.google.gson.JsonArray()
+
+            android.util.Log.d("GeckoView", "Ponte detectada: $bridge | Método: $method | Params: $params")
 
             runOnUiThread {
                 when (bridge) {
                     "AndroidApp" -> handleAppMethod(method, params)
                     "AndroidPrinter" -> handlePrinterMethod(method, params)
+                    else -> android.util.Log.w("GeckoView", "Ponte '${bridge}' não reconhecida.")
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("GeckoView", "Erro ao processar mensagem da ponte", e)
+            android.util.Log.e("GeckoView", "Falha catastrófica ao processar ponte", e)
         }
     }
 
