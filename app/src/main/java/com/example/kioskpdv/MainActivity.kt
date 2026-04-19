@@ -17,6 +17,7 @@ import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -40,7 +41,10 @@ class MainActivity : AppCompatActivity() {
     private var geckoRuntime: GeckoRuntime? = null
     
     private val TAG = "MainActivity"
-    private var mUploadMessage: Any? = null // Placeholder se precisar de upload no futuro no Gecko
+    private var pendingFilePrompt: GeckoSession.PromptDelegate.FilePrompt? = null
+    private var pendingFileResult: GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? = null
+    private var pendingPermissionCallback: GeckoSession.PermissionDelegate.MediaCallback? = null
+    private var pendingVideoSource: GeckoSession.PermissionDelegate.MediaSource? = null
     private var mCameraPhotoPath: String? = null
 
     private lateinit var configContainer: LinearLayout
@@ -66,17 +70,18 @@ class MainActivity : AppCompatActivity() {
     private val cameraPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
-                pendingPermissionRequest?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                pendingPermissionCallback?.grant(pendingVideoSource, null)
             } else {
-                pendingPermissionRequest?.deny()
+                pendingPermissionCallback?.reject()
                 Toast.makeText(this, "Permissão de câmera necessária para esta função", Toast.LENGTH_SHORT).show()
             }
-            pendingPermissionRequest = null
+            pendingPermissionCallback = null
+            pendingVideoSource = null
         }
 
     // Register callback for File Chooser (Camera)
     private val fileChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (mUploadMessage == null) return@registerForActivityResult
+        if (pendingFileResult == null || pendingFilePrompt == null) return@registerForActivityResult
 
         var results: Array<Uri>? = null
 
@@ -95,8 +100,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        mUploadMessage?.onReceiveValue(results)
-        mUploadMessage = null
+        if (results != null) {
+            pendingFileResult?.complete(pendingFilePrompt?.confirm(this, results))
+        } else {
+            pendingFileResult?.complete(pendingFilePrompt?.dismiss())
+        }
+        
+        pendingFileResult = null
+        pendingFilePrompt = null
     }
 
     // Register callback for QR Code Scanner
@@ -184,7 +195,7 @@ class MainActivity : AppCompatActivity() {
             geckoRuntime = GeckoRuntime.create(this)
         }
 
-        // Configurar Delegado de Prompts (Alertas/Confirmações)
+        // Configurar Delegado de Prompts (Alertas/Confirmações/Arquivos)
         geckoSession.promptDelegate = object : GeckoSession.PromptDelegate {
             override fun onAlertPrompt(session: GeckoSession, prompt: GeckoSession.PromptDelegate.AlertPrompt): GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
                 com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
@@ -192,12 +203,57 @@ class MainActivity : AppCompatActivity() {
                     .setMessage(prompt.message)
                     .setPositiveButton("OK") { _, _ ->  }
                     .show()
-                // Usamos dismiss() para alertas simples, pois confirm() pode estar protegido em algumas builds
                 return GeckoResult.fromValue(prompt.dismiss())
+            }
+
+            override fun onFilePrompt(session: GeckoSession, prompt: GeckoSession.PromptDelegate.FilePrompt): GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
+                pendingFilePrompt = prompt
+                pendingFileResult = GeckoResult<GeckoSession.PromptDelegate.PromptResponse>()
+                
+                val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                if (takePictureIntent.resolveActivity(packageManager) != null) {
+                    val photoFile: File? = try { createImageFile() } catch (ex: Exception) { null }
+                    if (photoFile != null) {
+                        val photoURI = FileProvider.getUriForFile(this@MainActivity, "com.example.kioskpdv.fileprovider", photoFile)
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                    }
+                }
+
+                val contentSelectionIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "image/*"
+                }
+
+                val chooserIntent = Intent(Intent.ACTION_CHOOSER).apply {
+                    putExtra(Intent.EXTRA_INTENT, contentSelectionIntent)
+                    putExtra(Intent.EXTRA_TITLE, "Selecionar Imagem")
+                    putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(takePictureIntent))
+                }
+
+                fileChooserLauncher.launch(chooserIntent)
+                return pendingFileResult
             }
         }
 
-        // Configurar Navegação (Opcional - Removido override com erro de assinatura)
+        // Configurar Delegado de Permissões
+        geckoSession.permissionDelegate = object : GeckoSession.PermissionDelegate {
+            override fun onMediaPermissionRequest(session: GeckoSession, uri: String, video: Array<out PermissionDelegate.MediaSource>?, audio: Array<out PermissionDelegate.MediaSource>?, callback: PermissionDelegate.MediaCallback) {
+                if (video != null && video.isNotEmpty()) {
+                    pendingPermissionCallback = callback
+                    pendingVideoSource = video[0]
+                    
+                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    } else {
+                        callback.grant(video[0], null)
+                    }
+                } else {
+                    callback.reject()
+                }
+            }
+        }
+
+        // Configurar Navegação (Opcional)
         geckoSession.navigationDelegate = object : GeckoSession.NavigationDelegate {
              // override fun onLocationChange...
         }
