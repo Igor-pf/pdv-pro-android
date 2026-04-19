@@ -253,12 +253,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Configurar Navegação (Opcional)
+        // Configurar Navegação
         geckoSession.navigationDelegate = object : GeckoSession.NavigationDelegate {
-             // override fun onLocationChange...
+            override fun onLocationChange(session: GeckoSession, url: String?) {
+                android.util.Log.d("GeckoView", "Navegou para: $url")
+            }
+
+            override fun onLoadRequest(session: GeckoSession, request: GeckoSession.NavigationDelegate.LoadRequest): GeckoResult<GeckoSession.NavigationDelegate.AllowOrDeny>? {
+                android.util.Log.d("GeckoView", "Solicitação de carga: ${request.uri}")
+                return GeckoResult.fromValue(GeckoSession.NavigationDelegate.AllowOrDeny.ALLOW)
+            }
+
+            override fun onLoadError(session: GeckoSession, uri: String?, error: Throwable): GeckoResult<String>? {
+                android.util.Log.e("GeckoView", "Erro no motor ao carregar: $uri", error)
+                return null // Segue o erro padrão do Gecko
+            }
         }
 
-        // CARREGAR WEB EXTENSION (MENSAGERIA)
+        // ABRIR SESSÃO (Essencial para sair da tela branca)
+        if (!geckoSession.isOpen) {
+            geckoSession.open(geckoRuntime!!)
+        }
+
+        // CARREGA WEB EXTENSION (MENSAGERIA) antes do LoadUri
         geckoRuntime?.webExtensionController?.ensureBuiltIn("resource://android/assets/messaging-extension/", "messaging@pdv.pro")
             ?.accept(
                 { extension ->
