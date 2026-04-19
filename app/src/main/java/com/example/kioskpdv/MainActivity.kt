@@ -16,9 +16,11 @@ import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.WebRequestError
+import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.ContentPermission
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -256,13 +258,13 @@ class MainActivity : AppCompatActivity() {
 
         // Configurar Navegação
         geckoSession.navigationDelegate = object : GeckoSession.NavigationDelegate {
-            override fun onLocationChange(session: GeckoSession, url: String?, perms: List<GeckoSession.PermissionDelegate.ContentPermission>, hasUserGesture: Boolean) {
+            override fun onLocationChange(session: GeckoSession, url: String?, perms: List<ContentPermission>) {
                 android.util.Log.d("GeckoView", "Navegou para: $url")
             }
 
-            override fun onLoadRequest(session: GeckoSession, request: GeckoSession.NavigationDelegate.LoadRequest): GeckoResult<GeckoSession.NavigationDelegate.AllowOrDeny>? {
+            override fun onLoadRequest(session: GeckoSession, request: GeckoSession.NavigationDelegate.LoadRequest): GeckoResult<AllowOrDeny>? {
                 android.util.Log.d("GeckoView", "Solicitação de carga: ${request.uri}")
-                return GeckoResult.fromValue(GeckoSession.NavigationDelegate.AllowOrDeny.ALLOW)
+                return GeckoResult.fromValue(AllowOrDeny.ALLOW)
             }
 
             override fun onLoadError(session: GeckoSession, uri: String?, error: WebRequestError): GeckoResult<String>? {
