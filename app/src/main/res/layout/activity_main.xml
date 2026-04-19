@@ -6,8 +6,8 @@
     tools:context=".MainActivity">
 
     <!-- WebView para o sistema Kiosk -->
-    <WebView
-        android:id="@+id/webview"
+    <org.mozilla.geckoview.GeckoView
+        android:id="@+id/geckoview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
