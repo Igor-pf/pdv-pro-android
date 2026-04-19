@@ -40,8 +40,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
     implementation 'com.google.code.gson:gson:2.10.1'
     
-    // GeckoView Engine
-    implementation "org.mozilla.geckoview:geckoview-stable:124.0.21"
+    // GeckoView Engine (Usando a versão exata do repo Mozilla)
+    implementation "org.mozilla.geckoview:geckoview-omni:124.0.20240311145044"
     
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
