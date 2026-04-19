@@ -15,6 +15,7 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.WebRequestError
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate
@@ -255,7 +256,7 @@ class MainActivity : AppCompatActivity() {
 
         // Configurar Navegação
         geckoSession.navigationDelegate = object : GeckoSession.NavigationDelegate {
-            override fun onLocationChange(session: GeckoSession, url: String?) {
+            override fun onLocationChange(session: GeckoSession, url: String?, perms: List<GeckoSession.PermissionDelegate.ContentPermission>, hasUserGesture: Boolean) {
                 android.util.Log.d("GeckoView", "Navegou para: $url")
             }
 
@@ -264,8 +265,8 @@ class MainActivity : AppCompatActivity() {
                 return GeckoResult.fromValue(GeckoSession.NavigationDelegate.AllowOrDeny.ALLOW)
             }
 
-            override fun onLoadError(session: GeckoSession, uri: String?, error: Throwable): GeckoResult<String>? {
-                android.util.Log.e("GeckoView", "Erro no motor ao carregar: $uri", error)
+            override fun onLoadError(session: GeckoSession, uri: String?, error: WebRequestError): GeckoResult<String>? {
+                android.util.Log.e("GeckoView", "Erro no motor ao carregar: $uri", Throwable(error.toString()))
                 return null // Segue o erro padrão do Gecko
             }
         }
