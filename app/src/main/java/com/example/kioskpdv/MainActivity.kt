@@ -10,12 +10,11 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
-import android.webkit.PermissionRequest
-import android.webkit.ValueCallback
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoView
 import org.mozilla.geckoview.WebExtension
+import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import android.widget.Button
@@ -41,8 +40,7 @@ class MainActivity : AppCompatActivity() {
     private var geckoRuntime: GeckoRuntime? = null
     
     private val TAG = "MainActivity"
-    private var pendingPermissionRequest: PermissionRequest? = null // Note: GeckoView handles permissions differently, but keeping for logic
-    private var mUploadMessage: ValueCallback<Array<Uri>>? = null
+    private var mUploadMessage: Any? = null // Placeholder se precisar de upload no futuro no Gecko
     private var mCameraPhotoPath: String? = null
 
     private lateinit var configContainer: LinearLayout
@@ -106,12 +104,8 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK) {
             val qrCode = result.data?.getStringExtra("SCAN_RESULT")
             if (qrCode != null) {
-                val js = "onQRCodeScanned('$qrCode')"
-                geckoSession.purgeHistory() // Exemplo de uso de session
-                // Avaliar JS no GeckoView - Injeção via dispatch de evento ou similar?
-                // Mais simples: Carregar uma URL de script ou usar evaluateJS se disponível na versão
-                // GeckoView usa evaluateJS via GeckoSession
-                geckoSession.evaluateJavascript(js, null)
+                val js = "javascript:onQRCodeScanned('$qrCode')"
+                geckoSession.loadUri(js)
                 Toast.makeText(this, "QR Code Lido: $qrCode", Toast.LENGTH_SHORT).show()
             }
         }
@@ -190,27 +184,22 @@ class MainActivity : AppCompatActivity() {
             geckoRuntime = GeckoRuntime.create(this)
         }
 
-        geckoSession.setSessionDelegate(object : GeckoSession.SessionDelegate {
-            // Pode implementar callbacks de ciclo de vida se necessário
-        }, null)
-
         // Configurar Delegado de Prompts (Alertas/Confirmações)
         geckoSession.promptDelegate = object : GeckoSession.PromptDelegate {
             override fun onAlertPrompt(session: GeckoSession, prompt: GeckoSession.PromptDelegate.AlertPrompt): GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
                 com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
                     .setTitle("Atenção")
                     .setMessage(prompt.message)
-                    .setPositiveButton("OK") { _, _ -> prompt.confirm().apply { } }
+                    .setPositiveButton("OK") { _, _ ->  }
                     .show()
-                return GeckoResult.fromValue(prompt.confirm())
+                // Usamos dismiss() para alertas simples, pois confirm() pode estar protegido em algumas builds
+                return GeckoResult.fromValue(prompt.dismiss())
             }
         }
 
-        // Configurar Navegação
+        // Configurar Navegação (Opcional - Removido override com erro de assinatura)
         geckoSession.navigationDelegate = object : GeckoSession.NavigationDelegate {
-             override fun onLocationChange(session: GeckoSession, url: String?) {
-                 // Logic after page load if needed
-             }
+             // override fun onLocationChange...
         }
 
         // CARREGAR WEB EXTENSION (MENSAGERIA)
@@ -284,33 +273,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     // [NOVO] Método para imprimir conteúdo HTML específico vindo do JS
-    @SuppressLint("SetJavaScriptEnabled")
     fun printContent(htmlContent: String) {
-        val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
-        if (printManager == null) {
-             Toast.makeText(this, "Erro: Serviço de Impressão indisponível.", Toast.LENGTH_LONG).show()
-             return
-        }
-
-        // Criar um WebView "invisível" ou temporário para renderizar o ticket
-        // Ele não precisa estar no layout se usarmos created context, mas é melhor adicionar e esconder
-        // ou criar dinamicamente com application context.
-        val printView = WebView(this)
-        printView.settings.javaScriptEnabled = true
-        
-        printView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                // Quando terminar de renderizar o HTML, manda imprimir
-                val jobName = "${getString(R.string.app_name)} Ticket"
-                val printAdapter = printView.createPrintDocumentAdapter(jobName)
-                printManager.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
-                
-                // Cleanup (Remover referência ou limpar memória se possível, mas garbage collector cuida)
-            }
-        }
-
-        // Carregar o conteúdo HTML
-        printView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+        // Para GeckoView, a impressão de conteúdo HTML específico via serviço de impressão do Android
+        // requer a geração de um PDF ou o uso de uma aba invisível que suporte impressão.
+        // Como o foco é a maquininha Gertec, a impressão de tickets deve ser feita via AndroidPrinter.
+        Toast.makeText(this, "Impressão via Sistema desabilitada no GeckoView. Use a integração nativa Gertec.", Toast.LENGTH_LONG).show()
     }
 
     // Bloquear botão voltar para modo Kiosk total (Opcional, mas solicitado 'fixo')
