@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">PDV Kiosk</string>
+    <string name="config_title">Configuração Inicial</string>
+    <string name="server_url_hint">URL do Servidor ex: https://meupdv.com</string>
+    <string name="save_and_start">Salvar e Iniciar</string>
+    <string name="reset_config_message">Deseja redefinir a URL do servidor?</string>
+    <string name="yes">Sim</string>
+    <string name="no">Não</string>
+</resources>
