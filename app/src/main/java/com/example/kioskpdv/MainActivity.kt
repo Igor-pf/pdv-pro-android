@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         
         // Verifica se a intenção é o retorno de um pagamento Stone (via DeepLink)
         intent?.let {
-            if (it.scheme == "kioskpdv" && it.host == "payment_result") {
+            if (it.scheme == "kioskpdv" && it.data?.host == "payment_result") {
                 val status = it.getStringExtra("transaction_status") ?: "UNKNOWN"
                 val orderId = it.getStringExtra("order_id") ?: ""
                 val amount = it.getStringExtra("amount") ?: ""
