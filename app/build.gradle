@@ -7,12 +7,21 @@ android {
     namespace 'com.example.kioskpdv'
     compileSdk 34
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId "com.example.kioskpdv"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        
+        // Gera um código único baseado no Github Actions (se estiver lá) ou no timestamp (se estiver compilando local). 
+        // Garante que o Android nunca reclame de "versão repetida"
+        versionCode System.getenv("GITHUB_RUN_NUMBER") ? System.getenv("GITHUB_RUN_NUMBER").toInteger() : (System.currentTimeMillis() / 10000).toInteger()
+        
+        // Exibe "1.0.RUN_NUMBER" (Ex: 1.0.42 ou 1.0.1721145)
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: (System.currentTimeMillis() / 10000).toInteger().toString())
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
