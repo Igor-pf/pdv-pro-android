@@ -30,7 +30,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.google.android.material.textfield.TextInputEditText
+import android.widget.EditText
 
 class MainActivity : AppCompatActivity() {
 
@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var mCameraPhotoPath: String? = null
 
     private lateinit var configContainer: LinearLayout
-    private lateinit var etServerUrl: TextInputEditText
+    private lateinit var etServerUrl: EditText
     private lateinit var btnSave: Button
     private lateinit var sharedPreferences: SharedPreferences
 
@@ -223,6 +223,11 @@ class MainActivity : AppCompatActivity() {
             webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
+        // [MDM] Injetar Header Nativo e Seguro no User-Agent para a Stone / Servidor PDV
+        // Isso permite o servidor identificar o Android OS, Modelo e Versão do App sem violar a privacidade
+        val defaultUserAgent = webView.settings.userAgentString
+        webView.settings.userAgentString = "$defaultUserAgent PDV-PRO-Kiosk/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; Model ${Build.MODEL})"
+
         // Habilitar Alertas e Popups com Design Premium
         webView.webChromeClient = object : android.webkit.WebChromeClient() {
             override fun onJsAlert(view: WebView?, url: String?, message: String?, result: android.webkit.JsResult?): Boolean {
@@ -346,9 +351,54 @@ class MainActivity : AppCompatActivity() {
                     android.webkit.CookieSyncManager.getInstance().sync()
                 }
             }
+            
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: android.webkit.WebResourceError?) {
+                super.onReceivedError(view, request, error)
+                // Ignorar erros secundários (ex: imagens, css, favicon)
+                if (request?.isForMainFrame == true) {
+                    showConnectionErrorPage()
+                }
+            }
+
+            override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                super.onReceivedError(view, errorCode, description, failingUrl)
+                showConnectionErrorPage()
+            }
         }
 
         webView.loadUrl(url)
+    }
+
+    private fun showConnectionErrorPage() {
+        val errorHtml = """
+            <!DOCTYPE html>
+            <html lang="pt-br">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Conexão Perdida</title>
+                <style>
+                    body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafb; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center; color: #111827; }
+                    .card { background: white; padding: 40px 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); max-width: 90%; }
+                    h1 { color: #dc2626; margin-bottom: 10px; font-size: 1.8rem; }
+                    p { color: #4b5563; font-size: 1.1rem; line-height: 1.5; margin-bottom: 30px; }
+                    .btn { background-color: #2563eb; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.4); }
+                    .btn:active { transform: scale(0.98); }
+                    .tunnel-badge { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="tunnel-badge">Cloudflare Access / Túnel</div>
+                    <h1>Conexão Interrompida</h1>
+                    <p>Sua sessão segura pode ter expirado ou a rede oscilou.<br>Por favor, tente reconectar para autenticar novamente.</p>
+                    <button class="btn" onclick="AndroidApp.reloadApp()">🔄 Tentar Novamente</button>
+                </div>
+            </body>
+            </html>
+        """.trimIndent()
+        
+        webView.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
     }
 
     private fun injectPolyfills() {
@@ -453,5 +503,15 @@ class MainActivity : AppCompatActivity() {
     fun launchQRScanner() {
         val intent = Intent(this, QRScanActivity::class.java)
         qrCodeLauncher.launch(intent)
+    }
+
+    fun reloadSavedUrl() {
+        val savedUrl = sharedPreferences.getString("SAVED_URL", null)
+        if (savedUrl != null) {
+            Toast.makeText(this, "Reconectando ao Túnel...", Toast.LENGTH_SHORT).show()
+            webView.loadUrl(savedUrl)
+        } else {
+            showConfigScreen()
+        }
     }
 }

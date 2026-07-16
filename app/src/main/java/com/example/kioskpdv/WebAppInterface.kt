@@ -87,4 +87,13 @@ class WebAppInterface(private val mContext: Context) {
             }
         }
     }
+    
+    @JavascriptInterface
+    fun reloadApp() {
+        if (mContext is MainActivity) {
+            mContext.runOnUiThread {
+                mContext.reloadSavedUrl()
+            }
+        }
+    }
 }

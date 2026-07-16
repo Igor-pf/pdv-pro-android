@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#0f172a"
     tools:context=".MainActivity">
 
     <!-- WebView para o sistema Kiosk -->
@@ -12,7 +14,7 @@
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <!-- Container da Configuração Inicial -->
+    <!-- Container da Configuração Inicial (Tema Próprio Independente do Sistema) -->
     <LinearLayout
         android:id="@+id/configContainer"
         android:layout_width="match_parent"
@@ -20,38 +22,77 @@
         android:orientation="vertical"
         android:gravity="center"
         android:padding="24dp"
-        android:background="@color/white"
+        android:background="#0f172a"
         android:visibility="visible">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/config_title"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="24dp"
-            android:textColor="@color/black"/>
-
-        <com.google.android.material.textfield.TextInputLayout
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/server_url_hint">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="#1e293b">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etServerUrl"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textUri"
-                android:textColor="@color/black"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:orientation="vertical"
+                android:padding="32dp">
 
-        <Button
-            android:id="@+id/btnSave"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/save_and_start"
-            android:layout_marginTop="24dp"/>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="PDV PRO Kiosk"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textColor="#f8fafc"
+                    android:layout_marginBottom="8dp"/>
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Configure o endpoint seguro de acesso ao sistema PDV (Ex: https://seu-dominio.com). Esta configuração vincula o terminal permanentemente."
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:textColor="#94a3b8"
+                    android:lineSpacingExtra="4dp"
+                    android:layout_marginBottom="24dp"/>
+
+                <EditText
+                    android:id="@+id/etServerUrl"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@android:color/transparent"
+                    android:backgroundTint="#0f172a"
+                    android:paddingHorizontal="16dp"
+                    android:inputType="textUri"
+                    android:hint="https://"
+                    android:textColorHint="#475569"
+                    android:textColor="#f8fafc"
+                    android:textSize="16sp"
+                    android:maxLines="1"
+                    android:layout_marginBottom="24dp"
+                    android:theme="@style/ThemeOverlay.AppCompat.Dark"/>
+                    
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:background="#3b82f6"
+                    android:layout_marginTop="-24dp"
+                    android:layout_marginBottom="24dp"/>
+
+                <Button
+                    android:id="@+id/btnSave"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="CONECTAR TERMINAL"
+                    android:textColor="#ffffff"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#3b82f6"
+                    app:cornerRadius="8dp"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
     </LinearLayout>
-
 </FrameLayout>
